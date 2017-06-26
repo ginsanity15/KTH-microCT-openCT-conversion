@@ -169,8 +169,6 @@ def Bin2dcm(filename, outputname, templatename):
     ds.NumberOfFramesInRotation = (300)
     ds.StartAngle = (0)
     ds.ScanArc = (2*np.pi)
-    ds.NumberofDetectorRows = (2400)
-    ds.NumberofDetectorColumns = (2400)
     ds.DetectorElementTransverseSpacing = (120)
     ds.DetectorElementAxialSpacing = (120)
     ds.DistanceSourceToDetector = (369.6)
