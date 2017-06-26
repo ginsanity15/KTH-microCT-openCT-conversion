@@ -41,7 +41,7 @@ def RemoveDeadPixel(DICOM_name):
     # Below four lines serves to remove region of dead pixels on detector, what
     # we did is to substitute region correspond to dead pixels with neighbor 
     # region that does not have dead pixel
-    img[8,:] = img[9,:]
+    img[7,:] = img[9,:]
     img[2350:2400,:] = img[1:51,:]
     img[2356,:] = img[2355,:]
     img[:,2251:2400] = img[:,1:150]
@@ -107,6 +107,7 @@ def RemoveDeadPixel(DICOM_name):
     # Modify tag: BadPixelCorrectionFlag to inform the user dead pixels in 
     # projection image have been removed
     ds.BadPixelCorrectionFlag = 'YES'
+    ds.save_as(DICOM_name)
     
 def GeometryCalibration(DICOM_name):
     # correction parameters for geometry, credit to Lorenzo and University of Arizonal
@@ -123,6 +124,7 @@ def GeometryCalibration(DICOM_name):
     # Store the calibrated projection image back
     ds.PixelData = img
     # No corresponding tag in header file
+    ds.save_as(DICOM_name)
 
 def DarkFieldCalibration(DICOM_name, DarkField):
     ds = dicom.read_file(DICOM_name)
@@ -130,12 +132,19 @@ def DarkFieldCalibration(DICOM_name, DarkField):
     img = ds.pixel_array
     DarkCurrent = DF.pixel_array
     img = (img-DarkCurrent)
+    # No pixel could have a value larger then 4096
+    img[img>4096] = 0
     # Store the calibrated projection image back
     ds.PixelData = img
     # Modify tag: DarkFieldCorrection to inform the user this kind of correction
     # has been made
     ds.DarkFieldCorrectionFlag = 'YES'
-    
+    ds.save_as(DICOM_name)
+ 
+# It seems DICOM can only store data of type 'unit16', since LightField correction
+# and log calibration will change the intensity of something into the range of [0,1]
+# Before DICOM changes its standard, below two kinds of calibration are not recommended
+# to perform at pro-processing stage
 def LightFieldCalibration(DICOM_name, LightField):
     ds = dicom.read_file(DICOM_name)
     LF = dicom.read_file(LightField)
@@ -143,13 +152,16 @@ def LightFieldCalibration(DICOM_name, LightField):
     LightF = LF.pixel_array
     LightF[LightF == 0] = np.max(LightF)
     # Store the calibrated projection image back
-    ds.PixelData = img/LightF
+    # Store it as "float16" as the division applied below will automatically change
+    # the data from "float16" to "float64"
+    ds.PixelData = (img/LightF).astype('float16')
     # Modify tag: FlatFieldCorrection to inform the user this kind of correction
     # has been made
     # Flat Field Correction is a private tag, we need to define its index and 
     # assign value through its index
     ds.add_new(0x70391006, 'CS', '1')
     ds[0x70391006].value = 'YES'
+    ds.save_as(DICOM_name)
     
 def LogCalibration(DICOM_name):
     ds = dicom.read_file(DICOM_name)
@@ -159,10 +171,11 @@ def LogCalibration(DICOM_name):
     # which cannot be smaller than 0
     img[img<0] = 0
     # Store the calibrated projection image back
-    ds.PixelData = img
+    ds.PixelData = img.astype('float16')
     # Modify tag: FlatFieldCorrection to inform the user this kind of correction
     # has been made
-    ds.LogFlag = 'No'
+    ds.LogFlag = 'YES'
+    ds.save_as(DICOM_name)
 
 # Unlike function given above, Phase Lag Calibration cannot be performed on one
 # single image
@@ -199,8 +212,9 @@ def PhaseLagCalibration(dicom_folder_path):
         img[img<0] = 0
         # Store the calibrated projection image back
         ds.PixelData = img
-        # No corresponding tag in header file
         
+        # No corresponding tag in header file
+        ds.save_as(filename)
         # Go to calibrate next image
         i += 1 
         
