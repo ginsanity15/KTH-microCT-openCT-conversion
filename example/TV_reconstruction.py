@@ -24,20 +24,20 @@ import odl
 import pickle
 import sys
 import dicom
-sys.path.insert(0, '/Users/starbury/odl/STH-Multigrid-Reconstruction/functions')
+sys.path.insert(0, '/home/davlars/STH-Multigrid-Reconstruction/functions')
 
 import display_functions as df
 import sinogram_generation as sg
 # %%
 # Given the path that stores all those projection images in DICOM format, users 
 # may need to modify this based on the directory they store the dataset
-DICOM_path = '/Users/starbury/Desktop/dicom'
+DICOM_path = '/home/davlars/microCT/projections/'
 
 # Directory for storing the .txt file that includes information of the reconstructed image 
 #output_store_path = '/home/davlars/Bo/real/Data_LC_512/TV/'
 
 # Path to the Light Field image
-#Light_Field_Path = ''
+Light_Field = '/home/davlars/microCT/LF/Light_Field.dcm'
 
 # Define the reconstruction space, these two points should be the opposite of each other
 # Decreasing the size of these two indices can increase the reconstruction speed
@@ -47,7 +47,7 @@ max_pt = [20, 20, 1]
 # TODO: write a function to truncate projection image to include ROI only and 
 # output the combined sinogram as well as one DICOM file (arbitrarily, we are 
 # only interested in the identical information stored in header file)
-sino, ds = sg.sino_gene(DICOM_path, min_pt = min_pt, max_pt, Light_Field_Path, Log = 1)
+sino, ds = sg.sino_gene(DICOM_path, roi_min = min_pt, roi_max = max_pt, Light_Field_Path = Light_Field, Log = 1)
 
 # These three numbers corresponds to the number of projection image as well as
 # the size of each projection image
@@ -150,7 +150,7 @@ smooth_func = data_func + reg_func_1
 
 # Non-differentiable part composed with linear operators
 reg_param = 2e-1
-nonsmooth_func = reg_param * odl.solvers.L1Norm(coarse_discr.range)
+nonsmooth_func = reg_param * odl.solvers.L1Norm(grad.range)
         
 # Assemble into lists (arbitrary number can be given)
 lin_ops = [grad]
@@ -168,7 +168,7 @@ print('norm of the ray transform: {}'.format(ray_trafo_norm))
 eta = 1 / (2 * ray_trafo_norm ** 2 + 2 * reg_param_1)
 print('eta = {}'.format(eta))
 grad_norm = 1.1 * odl.power_method_opnorm(grad,
-                                          xstart=phantom_f,
+                                          xstart=phantom,
                                           maxiter=4)
 print('norm of the gradient: {}'.format(grad_norm))
         
@@ -192,13 +192,12 @@ callback = (odl.solvers.CallbackPrintIteration())# &
 reco = pspace.zero()  # starting point
 curve, time_slot, minimization = odl.solvers.forward_backward_pd(
             reco, f=f, g=nonsmooth_funcs, L=lin_ops, h=smooth_func,
-            tau=tau, sigma=[sigma], niter=150, callback=callback, RayTrafo = sum_ray_trafo,
+            tau=tau, sigma=[sigma], niter=150, callback=callback,
+            RayTrafo = coarse_ray_trafo,
             Sinogram = data, timeslot = 1, minimization = 1)
-      
+'''      
 # %% Storing the image
 f = open(filename_c,'wb')
 coarse_image = reco[0].asarray()
 pickle.dump(coarse_image,f)
-    
-# %% Display multi-grid image
-df.Display_multigrid(reco, fold, , roi)
+'''
