@@ -51,6 +51,7 @@ Requirements:
 
 import numpy as np
 import dicom
+import conversion
 
 def Bin2dcm(filename, outputname, templatename):
     ds = dicom.read_file(templatename)
@@ -220,3 +221,111 @@ def Bin2dcm(filename, outputname, templatename):
     ds.LesionInformationModule = 'CT IMG ACQUISITION'
     
     ds.save_as(outputname)
+    
+
+def bin2img(filename, templatename):
+    ds = dicom.read_file(templatename)
+    f = open(filename,'r')
+    counter = 0
+    # Input information to header file of OpenCT data, as information created 
+    # below comes directly from the detector, no modification should be made
+    # here
+    temp = np.fromfile(f, dtype=np.uint8, count=4)
+    counter += 4
+
+    ds.version = np.fromfile(f, dtype=np.uint8, count=1)
+    counter += 1
+
+    ds.imageNx = np.fromfile(f, dtype=np.uint16, count=1)
+    counter += 2
+
+    ds.imageNy = np.fromfile(f, dtype=np.uint16, count=1)
+    counter += 2
+
+    ds.windowX0 = np.fromfile(f, dtype=np.uint16, count=1)
+    counter += 2
+
+    ds.windowY0 = np.fromfile(f, dtype=np.uint16, count=1)
+    counter += 2
+
+    ds.windowX1 = np.fromfile(f, dtype=np.int16, count=1)
+    counter += 2
+
+    ds.windowY1 = np.fromfile(f, dtype=np.int16, count=1)
+    counter += 2
+
+    ds.numberOfSummedImages = np.fromfile(f, dtype=np.uint16, count=1)
+    counter += 2
+
+    ds.frameWidth_ms = np.fromfile(f, dtype=np.uint16, count=1)
+    counter += 2
+
+    ds.triggerWidth_ms = np.fromfile(f, dtype=np.uint16, count=1)
+    counter += 2
+
+    ds.dataType = np.fromfile(f, dtype=np.uint8, count=1)
+    counter += 1
+
+    ds.binningMode = np.fromfile(f, dtype=np.uint8, count=1)
+    counter += 1
+
+    ds.triggerMode = np.fromfile(f, dtype=np.uint8, count=1)
+    counter += 1
+
+    ds.sumMode = np.fromfile(f, dtype=np.uint8, count=1)
+    counter += 1
+
+    ds.xRayOn = np.fromfile(f, dtype=np.uint8, count=1)
+    counter += 1
+    
+    ds.cycleId = 0
+    ds.targetType = 0
+    ds.imageNumer = 0
+    if ds.version > 1:
+        ds.ycleId = np.fromfile(f, dtype=np.uint32, count=1)
+        counter += 4
+        ds.targetType = np.fromfile(f, dtype=np.uint8, count=1)
+        counter += 1
+        ds.imageNumer = np.fromfile(f, dtype=np.uint32, count=1)
+        counter += 4
+        
+    ds.acquisitionDate = np.fromfile(f, dtype = 'c', count=23)
+    counter += 23
+    
+    ReferringPhysicianLength = np.fromfile(f, dtype=np.uint16, count=1)
+    counter += 2
+    ds.ReferringPhysicianName = 'BoGao'
+    if (ReferringPhysicianLength > 0):
+        ds.ReferringPhysicianName = np.fromfile(f, dtype= 'c', count = ReferringPhysicianLength)
+        counter += ReferringPhysicianLength
+
+    blankPartSize = 512 - counter
+    nosense = np.fromfile(f, dtype=np.uint8, count=blankPartSize)
+
+    prec = np.uint8
+    
+    if ( ds.version==1 ):
+        #This is because there was a bug in version 1
+        if ( ds.dataType==1 or ds.dataType==0 ):
+            prec=np.uint16
+        if ( ds.dataType==2 ):
+            prec=np.uint32
+    else:
+        #version 2 works well
+        if ( ds.dataType==0 or ds.dataType==3 ):
+            prec=np.uint8
+        if ( ds.dataType==1 or ds.dataType==4 ):
+            prec=np.uint16 
+        if ( ds.dataType==2 or ds.dataType==5):
+            prec=np.uint32 
+        if ( ds.dataType==6 ):
+            prec=np.float32 
+        if ( ds.dataType==7 ):
+            prec=np.dtype('d')
+
+    length = ds.imageNx[0].astype(int)
+    width = ds.imageNy[0].astype(int)
+    img=np.fromfile(f, dtype = prec, count = length*width)
+    img=np.reshape(img, [length, width])
+    
+    return img
