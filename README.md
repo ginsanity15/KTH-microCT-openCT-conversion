@@ -13,6 +13,9 @@ dicom
 
 The ```dicom``` module can be most easily installed by ```easy_install pydicom```. Note that the conversion here intends to generate DICOM-CT-PD-format, instead of standard DICOM. For this, the default ```_dicom_dict.py``` dictionary in ```pydicom``` has to be replaced by the ```_dicom_dict.py``` file given in this repository. Generally, this file (to be replaced) can be found in ```/path/to/lib/python2.7/site-packages/pydicom-0.9.8-py2.7.egg/dicom/```.
 
+For the reconstruction, the python library [```odl```](https://github.com/odlgroup/odl/) is also used. 
+
+
 ## Files
 
 ### functions/calibration.py
@@ -46,11 +49,15 @@ Example conversion of multiple bin-files into openCT-dicom format. NOTE: This do
 ### example/ConvertAndCalibrateBins.py
 Conversion of microCT bin-files to openCT-dicom. This includes geometry alignment, DC correction, and phase lag. Requires input directories, template file, and dark current dicom.
 
+### example/FBP_reconstruction.py
+Simple example of coarse FBP reconstruction of generated dcm-data using [```odl```](https://github.com/odlgroup/odl/). 
+
 ## Usage
 1) Make sure you have the correct ```_dicom_dict.py``` in the ```pydicom```-directory.
 2) Run ```DarkCurrentCorrection.py``` to generate ```Dark_Field.dcm```
 3) Run ```LightFieldCorrection.py``` to generate ```Light_Field.dcm```
 4) Run ```ConvertAndCalibrateBins.py``` to convert and calibrate raw bin data
+5) Reconstruct using e.g. ```FBP_reconstruction.py```
 
 
 
