@@ -23,15 +23,18 @@ import odl
 import odl_multigrid as multigrid
 import pickle
 import sys
-sys.path.insert(0, '/Users/starbury/odl/STH-Multigrid-Reconstruction/functions')
+sys.path.insert(0, '/home/davlars/STH-Multigrid-Reconstruction/functions')
 
-import display_function as df
+import display_functions as df
 import sinogram_generation as sg
 
 # %%
 # Given the path that stores all those projection images in DICOM format, users 
 # may need to modify this based on the directory they store the dataset
-DICOM_path = '/Users/starbury/odl/STH-Multigrid-Reconstruction/Data'
+DICOM_path = '/home/davlars/microCT/projections/'
+
+# Path to the Light Field image
+Light_Field = '/home/davlars/microCT/LF/Light_Field.dcm'
 
 # Directory for storing the .txt file that includes information of the reconstructed image 
 output_store_path = '/home/davlars/Bo/real/Data_LC_512/TV/'
@@ -43,7 +46,11 @@ max_pt = [20, 20, 1]
 # TODO: write a function to truncate projection image to include ROI only and 
 # output the combined sinogram as well as one DICOM file (arbitrarily, we are 
 # only interested in the identical information stored in header file)
-sino, ds = sg.sino_gene(DICOM_path, min_pt, max_pt)
+sino, ds = sg.sino_gene(DICOM_path,
+                        roi_min=min_pt,
+                        roi_max=max_pt,
+                        LightFieldPath = Light_Field,
+                        Log=1)
 
 # These three numbers corresponds to the number of projection image as well as
 # the size of each projection image
@@ -73,9 +80,9 @@ end = ds.ScanArc
 end = np.float(end)
 
 # Number of pixels along each row and column on projection image
-length = ds.NumberofDetectorRows
+length = ds.Rows
 length = np.int(length)
-width = ds.NumberofDetectorColumns
+width = ds.Columns
 width = np.int(width)
 
 # Check is the detector has performed binning (e.g. combine intensity on four pixels
