@@ -48,8 +48,6 @@ number =  len([name for name in os.listdir(file_path) if os.path.isfile(os.path.
 
 start_time = time.time()
 
-number = 5
-
 # Counting the number of projection image been converted
 for filename, i in zip(glob.glob(os.path.join(file_path, '*.bin')), range(number)):
     outputname = output_path + 'projection_image' + str(i) + '.dcm'
