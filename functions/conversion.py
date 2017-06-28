@@ -53,7 +53,12 @@ import numpy as np
 import dicom
 import conversion
 
-def Bin2dcm(filename, outputname, templatename):
+def bin2dcm(filename, outputname, templatename):
+
+    # Change dicom setting to allow float and decimal point values
+    dicom.config.allow_DS_float = True   
+    dicom.config.enforce_valid_values = False
+    
     ds = dicom.read_file(templatename)
     f = open(filename,'r')
     counter = 0
@@ -167,11 +172,11 @@ def Bin2dcm(filename, outputname, templatename):
     # this section may require certain change
     ds.ReconstructionPixelSpacing = [0.05,0.05]
     ds.RotationDirection = 'CW'
-    ds.NumberOfFramesInRotation = (300)
+    ds.NumberOfFramesInRotation = (300) #Number of projections
     ds.StartAngle = (0)
-    ds.ScanArc = (2*np.pi)
-    ds.DetectorElementTransverseSpacing = (120)
-    ds.DetectorElementAxialSpacing = (120)
+    ds.ScanArc = (2*np.pi) #End rotation angle
+    ds.DetectorElementTransverseSpacing = (120) #Physical space, mm
+    ds.DetectorElementAxialSpacing = (120) #Physical space, mm
     ds.DistanceSourceToDetector = (369.6)
     ds.DistanceSourceToPatient = (260)
     ds.RadialPosition = (109.6)

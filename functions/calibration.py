@@ -35,8 +35,8 @@ import dicom
 import os
 import glob
 
-def RemoveDeadPixel(DICOM_name):
-    ds = dicom.read_file(DICOM_name)
+def RemoveDeadPixel(ds):
+    #ds = dicom.read_file(DICOM_name)
     img = ds.pixel_array
     # Below four lines serves to remove region of dead pixels on detector, what
     # we did is to substitute region correspond to dead pixels with neighbor 
@@ -101,19 +101,20 @@ def RemoveDeadPixel(DICOM_name):
     img[2092, 371] = img[2091, 370]
     img[2120, 207] = img[2119, 206]
     img[2258, 761] = img[2257, 760]
-
-    # Store the calibrated projection image back
+   
     ds.PixelData = img
     # Modify tag: BadPixelCorrectionFlag to inform the user dead pixels in 
     # projection image have been removed
     ds.BadPixelCorrectionFlag = 'YES'
-    ds.save_as(DICOM_name)
     
-def GeometryCalibration(DICOM_name):
+    return ds    
+
+    #ds.save_as(DICOM_name)
+    
+def GeometryCalibration(ds):
     # correction parameters for geometry, credit to Lorenzo and University of Arizonal
-    pUP = 29
-    pLEFT = 13
-    ds = dicom.read_file(DICOM_name)
+    pUP = 29 # dx average in pixels
+    pLEFT = 13 # -dz average in pixels
     img = ds.pixel_array
     Mup = img[:,0:pUP]
     Mdown = img[:,pUP:]
@@ -123,12 +124,10 @@ def GeometryCalibration(DICOM_name):
     img = np.append(Mright, Mleft, axis=0)
     # Store the calibrated projection image back
     ds.PixelData = img
-    # No corresponding tag in header file
-    ds.save_as(DICOM_name)
+    return ds
 
-def DarkFieldCalibration(DICOM_name, DarkField):
-    ds = dicom.read_file(DICOM_name)
-    DF = dicom.read_file(DarkField)
+def DarkFieldCalibration(ds, DarkField_name):
+    DF = dicom.read_file(DarkField_name)
     img = ds.pixel_array
     DarkCurrent = DF.pixel_array
     img = (img-DarkCurrent)
@@ -139,15 +138,15 @@ def DarkFieldCalibration(DICOM_name, DarkField):
     # Modify tag: DarkFieldCorrection to inform the user this kind of correction
     # has been made
     ds.DarkFieldCorrectionFlag = 'YES'
-    ds.save_as(DICOM_name)
+    
+    return ds
  
 # It seems DICOM can only store data of type 'unit16', since LightField correction
 # and log calibration will change the intensity of something into the range of [0,1]
 # Before DICOM changes its standard, below two kinds of calibration are not recommended
 # to perform at pro-processing stage
-def LightFieldCalibration(DICOM_name, LightField):
-    ds = dicom.read_file(DICOM_name)
-    LF = dicom.read_file(LightField)
+def LightFieldCalibration(ds, LightField_name):
+    LF = dicom.read_file(LightField_name)
     img = ds.pixel_array
     LightF = LF.pixel_array
     LightF[LightF == 0] = np.max(LightF)
@@ -161,10 +160,10 @@ def LightFieldCalibration(DICOM_name, LightField):
     # assign value through its index
     ds.add_new(0x70391006, 'CS', '1')
     ds[0x70391006].value = 'YES'
-    ds.save_as(DICOM_name)
     
-def LogCalibration(DICOM_name):
-    ds = dicom.read_file(DICOM_name)
+    return ds
+    
+def LogCalibration(ds):
     img = ds.pixel_array
     img = -np.log(img)
     # After log calibration, information stored in img is attenuation coefficient,
@@ -175,28 +174,30 @@ def LogCalibration(DICOM_name):
     # Modify tag: FlatFieldCorrection to inform the user this kind of correction
     # has been made
     ds.LogFlag = 'YES'
-    ds.save_as(DICOM_name)
+
+    return ds
 
 # Unlike function given above, Phase Lag Calibration cannot be performed on one
 # single image
 
 # Probably we should design it to proceed one folder of DICOM files
-def PhaseLagCalibration(dicom_folder_path):
+def PhaseLagCalibration(dicom_folder_path, number):
+
+    dicom.config.enforce_valid_values = False
+
+    
     # correction parameters for Phase Lag, credit to Lorenzo
     step = 4
     a = step * np.array([3.71, 0.33, 0.027])
     b = np.array([0.99, 0.0019, 0.0012])
     
-    # i will be used as a flag to determine if the DICOM image currently 
-    # being processed is the first projection image
-    i = 0
-    
     # Load in uncorrected projection image
-    for filename in glob.glob(os.path.join(dicom_folder_path, '*.dcm')):
+    for filenumber in range(number):
+        filename = dicom_folder_path + 'projection_image' + str(filenumber) + '.dcm'        
         ds = dicom.read_file(filename)
         img = ds.pixel_array
         size_n, size_m = img.shape
-        if i == 0:
+        if filenumber == 0:
             phase = np.zeros([size_n, size_m], dtype = 'uint16')
             S1 = np.zeros([size_n, size_m], dtype = 'uint16')
             S2 = np.zeros([size_n, size_m], dtype = 'uint16')
@@ -212,9 +213,10 @@ def PhaseLagCalibration(dicom_folder_path):
         img[img<0] = 0
         # Store the calibrated projection image back
         ds.PixelData = img
+
+        print(str(filenumber+1) + ' out of ' + str(number) + ' images has been phase lag calibrated')
         
         # No corresponding tag in header file
         ds.save_as(filename)
         # Go to calibrate next image
-        i += 1 
         
