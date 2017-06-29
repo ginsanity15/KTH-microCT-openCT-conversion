@@ -47,7 +47,7 @@ max_pt = [20, 20, 1]
 # TODO: write a function to truncate projection image to include ROI only and 
 # output the combined sinogram as well as one DICOM file (arbitrarily, we are 
 # only interested in the identical information stored in header file)
-sino, ds = sg.sino_gene(DICOM_path, roi_min = min_pt, roi_max = max_pt, Light_Field_Path = Light_Field, Log = 1)
+sino, ds = sg.sino_gene(DICOM_path, roi_min = min_pt, roi_max = max_pt, LightFieldPath = Light_Field, Log = 1)
 
 # These three numbers corresponds to the number of projection image as well as
 # the size of each projection image
