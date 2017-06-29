@@ -34,7 +34,7 @@ import sinogram_generation as sg
 DICOM_path = '/home/davlars/microCT/projections/'
 
 # Directory for storing the .txt file that includes information of the reconstructed image 
-#output_store_path = '/home/davlars/Bo/real/Data_LC_512/TV/'
+output_store_path = '/home/davlars/Bo/real/Data_LC_512/TV/'
 
 # Path to the Light Field image
 Light_Field = '/home/davlars/microCT/LF/Light_Field.dcm'
